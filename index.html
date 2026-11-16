@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniSave — Universal Social Video & Audio Downloader</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-8px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom subtle glassmorphism and scrollbar styling */
+        .glass-panel {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .hero-glow {
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.08) 40%, transparent 75%);
+        }
+        .dark .hero-glow {
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.28) 0%, rgba(139, 92, 246, 0.12) 45%, transparent 75%);
+        }
+        /* Smooth FAQ accordion transitions */
+        .faq-content {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.3s ease-out;
+        }
+        .faq-item[data-open="true"] .faq-content {
+            grid-template-rows: 1fr;
+        }
+        .faq-inner {
+            overflow: hidden;
+        }
+        .faq-item[data-open="true"] .faq-chevron {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased transition-colors duration-300 selection:bg-indigo-500 selection:text-white">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 glass-panel">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="#" class="flex items-center gap-2.5 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                    <i data-lucide="download-cloud" class="w-5 h-5"></i>
+                </div>
+                <span class="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
+                    Omni<span class="text-indigo-500">Save</span>
+                </span>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-400">
+                <a href="#platforms" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Platforms</a>
+                <a href="#how-it-works" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">How It Works</a>
+                <a href="#features" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Features</a>
+                <a href="#faq" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">FAQ</a>
+            </nav>
+
+            <!-- Right Actions -->
+            <div class="flex items-center gap-3">
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    API Ready v2.4
+                </span>
+                
+                <!-- Dark / Light Mode Toggle -->
+                <button id="theme-toggle" aria-label="Toggle color theme" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-900/70 hover:bg-slate-200/70 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="relative overflow-hidden pt-14 pb-20 sm:pt-20 sm:pb-28 hero-glow">
+            <!-- Decorative Grid Pattern -->
+            <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none"></div>
+
+            <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <!-- Pill Badge -->
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs sm:text-sm font-medium mb-6">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-indigo-500"></i>
+                    <span>4K Ultra HD • 1080p60 • Clean No-Watermark Media</span>
+                </div>
+
+                <!-- Main Headline -->
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12] mb-6">
+                    Download Any Video in <br class="hidden sm:inline" />
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500">
+                        Crystal-Clear Resolution
+                    </span>
+                </h1>
+
+                <!-- Subheadline -->
+                <p class="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-400 mb-10 leading-relaxed">
+                    Save videos, reels, shorts, and crisp 320kbps MP3 audio from TikTok, YouTube, Instagram, X, Facebook, and Vimeo. Fast, clean, and watermark-free.
+                </p>
+
+                <!-- Prominent URL Input Box -->
+                <div class="max-w-3xl mx-auto">
+                    <form id="download-form" class="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-2xl shadow-indigo-500/10 focus-within:border-indigo-500 dark:focus-within:border-indigo-500 transition-all">
+                        <div class="flex items-center flex-1 pl-3 pr-2 py-2 sm:py-0">
+                            <i data-lucide="link-2" class="w-5 h-5 text-slate-400 shrink-0 mr-3"></i>
+                            <input 
+                                type="url" 
+                                id="video-url-input" 
+                                placeholder="Paste TikTok, YouTube, Instagram, or X video link here..." 
+                                class="w-full bg-transparent text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm sm:text-base focus:outline-none"
+                                required
+                            />
+                            <!-- Clear Button (hidden when empty) -->
+                            <button type="button" id="clear-btn" title="Clear input" class="hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- Paste Button -->
+                            <button 
+                                type="button" 
+                                id="paste-btn"
+                                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-sm font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                            >
+                                <i data-lucide="clipboard-paste" class="w-4 h-4"></i>
+                                <span>Paste</span>
+                            </button>
+
+                            <!-- Primary Download Action Button -->
+                            <button 
+                                type="submit" 
+                                id="submit-btn"
+                                class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/25 active:scale-[0.99] transition-all"
+                            >
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>Download</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Sample Demo Links Bar -->
+                    <div class="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                        <span>Try a sample link:</span>
+                        <button type="button" data-sample="tiktok" class="sample-link-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+                            TikTok No-Watermark
+                        </button>
+                        <button type="button" data-sample="youtube" class="sample-link-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                            YouTube 4K HDR
+                        </button>
+                        <button type="button" data-sample="instagram" class="sample-link-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all">
+                            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                            Instagram Reel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Interactive Simulated Preview / Result Card Container -->
+                <div id="result-area" class="max-w-4xl mx-auto mt-10 text-left hidden">
+                    <!-- Loading Skeleton State -->
+                    <div id="loading-card" class="hidden rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xl">
+                        <div class="flex flex-col items-center justify-center py-6 text-center">
+                            <div class="relative w-14 h-14 mb-4">
+                                <div class="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
+                                <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                                <i data-lucide="sparkles" class="w-5 h-5 text-indigo-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">Extracting Media Streams...</h3>
+                            <p id="loading-status-text" class="text-sm text-slate-500 dark:text-slate-400">Resolving high-bitrate MP4 & audio tracks without watermarks</p>
+                        </div>
+                    </div>
+
+                    <!-- Loaded Result Card -->
+                    <div id="preview-card" class="hidden rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all">
+                        <!-- Prototype Banner -->
+                        <div class="px-4 py-2 bg-indigo-500/10 border-b border-indigo-500/20 flex items-center justify-between text-xs text-indigo-700 dark:text-indigo-300">
+                            <span class="flex items-center gap-1.5 font-medium">
+                                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                                Interactive UI Preview — Ready for REST / yt-dlp API binding
+                            </span>
+                            <button type="button" id="close-result-btn" class="hover:underline font-medium">Dismiss</button>
+                        </div>
+
+                        <div class="p-5 sm:p-7">
+                            <!-- Video Metadata Header -->
+                            <div class="flex flex-col md:flex-row gap-6 pb-6 border-b border-slate-200 dark:border-slate-800">
+                                <!-- Thumbnail Placeholder -->
+                                <div class="relative w-full md:w-64 aspect-video rounded-xl overflow-hidden bg-slate-800 shrink-0 group shadow-md">
+                                    <img 
+                                        id="result-thumb" 
+                                        src="https://placehold.co/640x360/1e1b4b/818cf8?text=4K+Media+Preview" 
+                                        alt="Video thumbnail preview" 
+                                        onerror="this.src='https://placehold.co/640x360/1e1b4b/818cf8?text=Video+Preview'"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                                    <!-- Platform Badge -->
+                                    <span id="result-platform-badge" class="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-black/70 text-white backdrop-blur-md">
+                                        TikTok
+                                    </span>
+                                    <!-- Duration Badge -->
+                                    <span id="result-duration" class="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-black/80 text-white">
+                                        00:42
+                                    </span>
+                                </div>
+
+                                <!-- Title & Author Info -->
+                                <div class="flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                                                Watermark Removed
+                                            </span>
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                                H.264 / AAC
+                                            </span>
+                                        </div>
+                                        <h3 id="result-title" class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-snug mb-2">
+                                            Cinematic Cyberpunk Tokyo Night Walk — Shot on Sony FX3 (No Watermark)
+                                        </h3>
+                                        <p id="result-author" class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                            <i data-lucide="user-check" class="w-4 h-4 text-indigo-500"></i>
+                                            <span>@visual.creator • Original Aspect Ratio (9:16 / 16:9)</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                                        <span class="truncate max-w-xs sm:max-w-md" id="result-source-url">https://www.tiktok.com/@visual.creator/video/7391029481</span>
+                                        <span class="text-indigo-500 font-medium shrink-0 ml-2">4 Formats Available</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Downloadable Resolution Options Table -->
+                            <div class="mt-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        Available Resolutions & Formats
+                                    </h4>
+                                    <span class="text-xs text-slate-400">Direct CDN Stream</span>
+                                </div>
+
+                                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                                                <th class="py-3 px-4">Quality / Resolution</th>
+                                                <th class="py-3 px-4">Format</th>
+                                                <th class="py-3 px-4 hidden sm:table-cell">Est. Size</th>
+                                                <th class="py-3 px-4 text-right">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="formats-table-body" class="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                                            <!-- Populated dynamically by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Supported Platforms Grid -->
+        <section id="platforms" class="py-16 sm:py-24 border-t border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-900/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3">
+                        One Tool for Every Major Platform
+                    </h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+                        Automatically detects the source network and fetches the highest available original bitrate stream.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <!-- TikTok -->
+                    <div class="group p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-pink-500/50 shadow-sm hover:shadow-lg hover:shadow-pink-500/5 transition-all text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm">TikTok</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">No Watermark HD</p>
+                    </div>
+
+                    <!-- YouTube -->
+                    <div class="group p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-500/50 shadow-sm hover:shadow-lg hover:shadow-red-500/5 transition-all text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="youtube" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm">YouTube</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">4K, Shorts & MP3</p>
+                    </div>
+
+                    <!-- Instagram -->
+                    <div class="group p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-purple-500/50 shadow-sm hover:shadow-lg hover:shadow-purple-500/5 transition-all text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="instagram" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm">Instagram</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Reels & Carousels</p>
+                    </div>
+
+                    <!-- Facebook -->
+                    <div class="group p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 shadow-sm hover:shadow-lg hover:shadow-blue-500/5 transition-all text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="facebook" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm">Facebook</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">1080p Watch & Reels</p>
+                    </div>
+
+                    <!-- X (Twitter) -->
+                    <div class="group p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-sky-500/50 shadow-sm hover:shadow-lg hover:shadow-sky-500/5 transition-all text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm">X (Twitter)</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">HD Videos & GIFs</p>
+                    </div>
+
+                    <!-- Vimeo -->
+                    <div class="group p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-teal-500/50 shadow-sm hover:shadow-lg hover:shadow-teal-500/5 transition-all text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="video" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm">Vimeo</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">4K Studio Streams</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works (3 Simple Steps) -->
+        <section id="how-it-works" class="py-16 sm:py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-14">
+                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-500">Simple Workflow</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2 mb-3">
+                        Save Videos in Three Effortless Steps
+                    </h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+                        No browser extensions or software installations needed. Works directly inside any modern browser.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                    <!-- Step 1 -->
+                    <div class="relative p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white font-bold flex items-center justify-center mb-5 shadow-lg shadow-indigo-600/20">
+                            1
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Copy Video Link</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Open TikTok, YouTube, Instagram, or X, tap the <strong class="text-slate-800 dark:text-slate-200">Share</strong> button, and select <strong class="text-slate-800 dark:text-slate-200">Copy Link</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="w-11 h-11 rounded-xl bg-violet-600 text-white font-bold flex items-center justify-center mb-5 shadow-lg shadow-violet-600/20">
+                            2
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Paste URL Above</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Click the one-tap <strong class="text-slate-800 dark:text-slate-200">Paste</strong> button in the input bar above and hit <strong class="text-slate-800 dark:text-slate-200">Download</strong> to fetch media streams.
+                        </p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="w-11 h-11 rounded-xl bg-fuchsia-600 text-white font-bold flex items-center justify-center mb-5 shadow-lg shadow-fuchsia-600/20">
+                            3
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Choose Resolution & Save</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Select 4K, 1080p Full HD (No Watermark), 720p, or 320kbps MP3 audio and save directly to your device.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="features" class="py-16 sm:py-24 border-t border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-900/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-14">
+                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-500">Engineered for Speed</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mt-2 mb-3">
+                        Built for Creators, Editors & Archivers
+                    </h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+                        Clean media files ready for editing timelines, offline viewing, or audio sampling.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Feature 1 -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-4">
+                            <i data-lucide="wand-2" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-2">Watermark-Free Streams</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Fetches clean source video tracks without floating usernames or platform logos obstructing your frame.
+                        </p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center mb-4">
+                            <i data-lucide="layers" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-2">Every Resolution Option</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Choose between 2160p 4K, 1080p Full HD, 720p data-saver MP4, or extract standalone 320kbps MP3 audio.
+                        </p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-2">Ultra-Fast Edge Parsing</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Asynchronous stream resolution delivers direct download links in milliseconds without queuing delays.
+                        </p>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4">
+                            <i data-lucide="smartphone" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-2">iOS, Android & Desktop</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Responsive mobile-first design works seamlessly on Safari, Chrome, Brave, macOS, and Windows.
+                        </p>
+                    </div>
+
+                    <!-- Feature 5 -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center mb-4">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-2">Privacy-First Architecture</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            No account signup required. Links are processed ephemerally without storing user download histories.
+                        </p>
+                    </div>
+
+                    <!-- Feature 6 -->
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-4">
+                            <i data-lucide="music" class="w-5 h-5"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 dark:text-white mb-2">Lossless Audio Extraction</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Need only the soundtrack, podcast clip, or voiceover? Grab high-bitrate MP3 or M4A audio in one click.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Accordion Section -->
+        <section id="faq" class="py-16 sm:py-24">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3">
+                        Frequently Asked Questions
+                    </h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+                        Everything you need to know about formats, resolutions, and integration.
+                    </p>
+                </div>
+
+                <div class="space-y-3" id="faq-accordion">
+                    <!-- FAQ Item 1 -->
+                    <div class="faq-item rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden" data-open="true">
+                        <button type="button" class="faq-trigger w-full flex items-center justify-between p-5 text-left font-semibold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                            <span>How does OmniSave remove watermarks from videos?</span>
+                            <i data-lucide="chevron-down" class="faq-chevron w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ml-4"></i>
+                        </button>
+                        <div class="faq-content">
+                            <div class="faq-inner px-5 pb-5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Instead of recording the player overlay, backend extractors query the platform's clean source video stream before dynamic watermark compositing is applied, preserving the original crisp video quality.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 2 -->
+                    <div class="faq-item rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden" data-open="false">
+                        <button type="button" class="faq-trigger w-full flex items-center justify-between p-5 text-left font-semibold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                            <span>Which resolutions and file formats are supported?</span>
+                            <i data-lucide="chevron-down" class="faq-chevron w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ml-4"></i>
+                        </button>
+                        <div class="faq-content">
+                            <div class="faq-inner px-5 pb-5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Depending on the source upload quality, you can download 4K Ultra HD (2160p), 2K (1440p), Full HD (1080p60), HD (720p), and SD (480p) in MP4/WebM containers, as well as 320kbps MP3 audio tracks.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 3 -->
+                    <div class="faq-item rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden" data-open="false">
+                        <button type="button" class="faq-trigger w-full flex items-center justify-between p-5 text-left font-semibold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                            <span>Does it work on iPhone (iOS) and Android devices?</span>
+                            <i data-lucide="chevron-down" class="faq-chevron w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ml-4"></i>
+                        </button>
+                        <div class="faq-content">
+                            <div class="faq-inner px-5 pb-5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Yes! OmniSave is a progressive web interface that works smoothly in Safari on iOS/iPadOS and Chrome on Android. Downloaded MP4 files save directly to your device's Downloads folder or Camera Roll.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Item 4 -->
+                    <div class="faq-item rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden" data-open="false">
+                        <button type="button" class="faq-trigger w-full flex items-center justify-between p-5 text-left font-semibold text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                            <span>Can I connect this frontend to my own backend API?</span>
+                            <i data-lucide="chevron-down" class="faq-chevron w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ml-4"></i>
+                        </button>
+                        <div class="faq-content">
+                            <div class="faq-inner px-5 pb-5 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Absolutely. The form submission and download action handlers in this template are cleanly modularized so you can replace the simulated resolver with a `fetch('/api/extract')` call to your Node.js, Python, or Go media service.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-950 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white">
+                    <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                </div>
+                <span class="font-bold text-slate-900 dark:text-white">OmniSave</span>
+            </div>
+
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center">
+                Please respect copyright laws and content creators' rights. Only download media you have permission to save.
+            </p>
+
+            <div class="flex items-center gap-5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                <a href="#" class="hover:text-indigo-500 transition-colors">Terms</a>
+                <a href="#" class="hover:text-indigo-500 transition-colors">Privacy</a>
+                <a href="#" class="hover:text-indigo-500 transition-colors">API Docs</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Interactive UI Logic -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // --- Theme Toggle Logic ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+
+        themeToggleBtn.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            const isDark = htmlEl.classList.contains('dark');
+            showToast(isDark ? 'Switched to Dark Mode' : 'Switched to Light Mode', 'info');
+        });
+
+        // --- Toast Notification System ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-slate-900 dark:bg-slate-800 text-white border-emerald-500/40',
+                info: 'bg-slate-900 dark:bg-slate-800 text-white border-indigo-500/40',
+                warning: 'bg-slate-900 dark:bg-slate-800 text-white border-amber-500/40'
+            };
+
+            const icons = {
+                success: 'check-circle-2',
+                info: 'info',
+                warning: 'alert-circle'
+            };
+
+            const iconColors = {
+                success: 'text-emerald-400',
+                info: 'text-indigo-400',
+                warning: 'text-amber-400'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl glass-panel transform translate-y-2 opacity-0 transition-all duration-300 ${colors[type]}`;
+            toast.innerHTML = `
+                <i data-lucide="${icons[type]}" class="w-5 h-5 shrink-0 ${iconColors[type]}"></i>
+                <span class="text-sm font-medium flex-1">${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons({ nodes: [toast] });
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3400);
+        }
+
+        // --- Sample Metadata Presets ---
+        const SAMPLE_DATA = {
+            tiktok: {
+                url: 'https://www.tiktok.com/@neonframes/video/742918472019482',
+                platform: 'TikTok',
+                badgeColor: 'bg-pink-600/90',
+                title: 'Tokyo Shibuya Rain Reflections at Midnight — 60fps Clean Master',
+                author: '@neonframes • Original HD Source',
+                duration: '00:34',
+                thumb: 'https://placehold.co/640x360/31102f/f472b6?text=TikTok+1080p60+Clean',
+                formats: [
+                    { quality: '1080p Full HD (60fps)', badge: 'No Watermark', format: 'MP4', size: '24.8 MB', highlight: true },
+                    { quality: '720p HD', badge: 'No Watermark', format: 'MP4', size: '12.1 MB', highlight: false },
+                    { quality: '480p Data Saver', badge: 'Clean', format: 'MP4', size: '5.4 MB', highlight: false },
+                    { quality: 'Original Sound (320kbps)', badge: 'Audio Only', format: 'MP3', size: '1.4 MB', highlight: false }
+                ]
+            },
+            youtube: {
+                url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ_4K_Demo',
+                platform: 'YouTube',
+                badgeColor: 'bg-red-600/90',
+                title: 'Dolomites Alpine Aerials in 4K 60fps HDR — Nature Documentary Reel',
+                author: 'AeroVision Studios • 2160p Master',
+                duration: '03:18',
+                thumb: 'https://placehold.co/640x360/3b0d11/f87171?text=YouTube+4K+Ultra+HD',
+                formats: [
+                    { quality: '2160p 4K Ultra HD', badge: 'HDR / 60fps', format: 'MP4', size: '184.2 MB', highlight: true },
+                    { quality: '1080p Full HD', badge: 'High Bitrate', format: 'MP4', size: '62.5 MB', highlight: false },
+                    { quality: '720p HD', badge: 'Standard', format: 'MP4', size: '28.9 MB', highlight: false },
+                    { quality: 'Studio Audio (320kbps)', badge: 'Audio Only', format: 'MP3', size: '7.6 MB', highlight: false }
+                ]
+            },
+            instagram: {
+                url: 'https://www.instagram.com/reel/C9xK2pL8vQw/',
+                platform: 'Instagram',
+                badgeColor: 'bg-purple-600/90',
+                title: 'Minimalist Desk Setup & Workflow Tour 2026 — Architectural Digest',
+                author: '@studio.minimal • Reels HD',
+                duration: '00:58',
+                thumb: 'https://placehold.co/640x360/2e1065/c084fc?text=Instagram+Reel+1080p',
+                formats: [
+                    { quality: '1080p Full HD Reel', badge: 'No Watermark', format: 'MP4', size: '31.4 MB', highlight: true },
+                    { quality: '720p HD', badge: 'Clean', format: 'MP4', size: '15.2 MB', highlight: false },
+                    { quality: '320kbps Stereo', badge: 'Audio Only', format: 'MP3', size: '2.3 MB', highlight: false }
+                ]
+            }
+        };
+
+        // --- Input & Clipboard Handling ---
+        const urlInput = document.getElementById('video-url-input');
+        const clearBtn = document.getElementById('clear-btn');
+        const pasteBtn = document.getElementById('paste-btn');
+        const downloadForm = document.getElementById('download-form');
+        const resultArea = document.getElementById('result-area');
+        const loadingCard = document.getElementById('loading-card');
+        const previewCard = document.getElementById('preview-card');
+        const closeResultBtn = document.getElementById('close-result-btn');
+
+        urlInput.addEventListener('input', () => {
+            clearBtn.classList.toggle('hidden', urlInput.value.length === 0);
+        });
+
+        clearBtn.addEventListener('click', () => {
+            urlInput.value = '';
+            clearBtn.classList.add('hidden');
+            urlInput.focus();
+        });
+
+        // Clipboard API Paste with graceful fallback
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        urlInput.value = text.trim();
+                        clearBtn.classList.remove('hidden');
+                        showToast('Link pasted from clipboard!', 'success');
+                        return;
+                    }
+                }
+                throw new Error('Clipboard empty or restricted');
+            } catch (err) {
+                urlInput.focus();
+                showToast('Press Ctrl+V (or Cmd+V) to paste your link', 'info');
+            }
+        });
+
+        // Sample Link Quick-Fill Buttons
+        document.querySelectorAll('.sample-link-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-sample');
+                const sample = SAMPLE_DATA[key];
+                if (sample) {
+                    urlInput.value = sample.url;
+                    clearBtn.classList.remove('hidden');
+                    processVideoUrl(sample.url);
+                }
+            });
+        });
+
+        closeResultBtn.addEventListener('click', () => {
+            resultArea.classList.add('hidden');
+            previewCard.classList.add('hidden');
+        });
+
+        // Detect platform from arbitrary pasted URL
+        function detectMetadataFromUrl(rawUrl) {
+            const lower = rawUrl.toLowerCase();
+            if (lower.includes('tiktok.com')) return { ...SAMPLE_DATA.tiktok, url: rawUrl };
+            if (lower.includes('youtube.com') || lower.includes('youtu.be')) return { ...SAMPLE_DATA.youtube, url: rawUrl };
+            if (lower.includes('instagram.com')) return { ...SAMPLE_DATA.instagram, url: rawUrl };
+
+            let platformName = 'Universal Web';
+            if (lower.includes('twitter.com') || lower.includes('x.com')) platformName = 'X (Twitter)';
+            else if (lower.includes('facebook.com') || lower.includes('fb.watch')) platformName = 'Facebook';
+            else if (lower.includes('vimeo.com')) platformName = 'Vimeo';
+
+            return {
+                url: rawUrl,
+                platform: platformName,
+                badgeColor: 'bg-indigo-600/90',
+                title: `Extracted ${platformName} High-Definition Video Stream`,
+                author: '@creator • Clean Source Media',
+                duration: '01:24',
+                thumb: `https://placehold.co/640x360/1e1b4b/818cf8?text=${encodeURIComponent(platformName)}+HD+Preview`,
+                formats: [
+                    { quality: '2160p 4K Ultra HD', badge: 'No Watermark', format: 'MP4', size: '112.4 MB', highlight: true },
+                    { quality: '1080p Full HD', badge: 'No Watermark', format: 'MP4', size: '44.0 MB', highlight: false },
+                    { quality: '720p HD', badge: 'Clean', format: 'MP4', size: '19.8 MB', highlight: false },
+                    { quality: '320kbps Audio', badge: 'Audio Only', format: 'MP3', size: '3.2 MB', highlight: false }
+                ]
+            };
+        }
+
+        // Form Submit -> Simulated Extraction Flow
+        downloadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = urlInput.value.trim();
+            if (!val) {
+                showToast('Please paste a valid video URL first.', 'warning');
+                urlInput.focus();
+                return;
+            }
+            processVideoUrl(val);
+        });
+
+        function processVideoUrl(url) {
+            resultArea.classList.remove('hidden');
+            previewCard.classList.add('hidden');
+            loadingCard.classList.remove('hidden');
+
+            const statusText = document.getElementById('loading-status-text');
+            statusText.textContent = 'Connecting to media resolver & stripping watermark layers...';
+
+            // Scroll smoothly into view on mobile
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            setTimeout(() => {
+                const data = detectMetadataFromUrl(url);
+                renderResultCard(data);
+                loadingCard.classList.add('hidden');
+                previewCard.classList.remove('hidden');
+                showToast(`Ready! Found ${data.formats.length} clean formats for ${data.platform}.`, 'success');
+            }, 950);
+        }
+
+        function renderResultCard(data) {
+            document.getElementById('result-thumb').src = data.thumb;
+            const badge = document.getElementById('result-platform-badge');
+            badge.textContent = data.platform;
+            badge.className = `absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-white backdrop-blur-md ${data.badgeColor}`;
+
+            document.getElementById('result-duration').textContent = data.duration;
+            document.getElementById('result-title').textContent = data.title;
+            document.getElementById('result-author').innerHTML = `<i data-lucide="user-check" class="w-4 h-4 text-indigo-500"></i><span>${data.author}</span>`;
+            document.getElementById('result-source-url').textContent = data.url;
+
+            const tbody = document.getElementById('formats-table-body');
+            tbody.innerHTML = '';
+
+            data.formats.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-semibold text-slate-900 dark:text-white">${item.quality}</span>
+                            <span class="px-2 py-0.5 rounded-md text-[11px] font-medium ${item.highlight ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">
+                                ${item.badge}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        <span class="font-mono text-xs font-semibold px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            ${item.format}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400 hidden sm:table-cell">
+                        ${item.size}
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                        <button 
+                            type="button" 
+                            onclick="triggerSimulatedDownload(this, '${item.quality}', '${item.format}')"
+                            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white ${item.highlight ? 'bg-indigo-600 hover:bg-indigo-500 shadow-md shadow-indigo-600/20' : 'bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600'} transition-all min-w-[112px]"
+                        >
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>Save ${item.format}</span>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons({ nodes: [previewCard] });
+        }
+
+        // Simulated Download Progress on Row Button
+        window.triggerSimulatedDownload = function(btn, quality, format) {
+            if (btn.dataset.downloading === 'true') return;
+            btn.dataset.downloading = 'true';
+
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('opacity-90', 'cursor-wait');
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 28) + 18;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Saved!</span>`;
+                    btn.classList.remove('bg-indigo-600', 'bg-slate-800', 'dark:bg-slate-700');
+                    btn.classList.add('bg-emerald-600');
+                    lucide.createIcons({ nodes: [btn] });
+
+                    showToast(`Simulated download complete: ${quality} (${format})`, 'success');
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                        btn.disabled = false;
+                        btn.dataset.downloading = 'false';
+                        btn.classList.remove('opacity-90', 'cursor-wait', 'bg-emerald-600');
+                        btn.classList.add('bg-indigo-600');
+                        lucide.createIcons({ nodes: [btn] });
+                    }, 2200);
+                } else {
+                    btn.innerHTML = `<span class="font-mono">${progress}%</span>`;
+                }
+            }, 220);
+        };
+
+        // --- FAQ Accordion Toggle ---
+        document.querySelectorAll('.faq-trigger').forEach(trigger => {
+            trigger.addEventListener('click', () => {
+                const item = trigger.closest('.faq-item');
+                const isOpen = item.getAttribute('data-open') === 'true';
+                
+                // Close others for clean single-open behavior
+                document.querySelectorAll('.faq-item').forEach(el => el.setAttribute('data-open', 'false'));
+                
+                if (!isOpen) {
+                    item.setAttribute('data-open', 'true');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
